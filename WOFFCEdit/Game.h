@@ -52,6 +52,7 @@ public:
 	void SaveDisplayChunk(ChunkObject *SceneChunk);	//saves geometry et al
 	void ClearDisplayList();
 	void CopyObject(int i);
+	void PasteObject();
 
 	DisplayObject coppiedObject;
 	int MousePicking();
@@ -77,8 +78,10 @@ private:
 	InputCommands						m_InputCommands;
 
 	RECT		m_ScreenDimensions;
-	//functionality
-	float								m_movespeed;
+
+
+	// copy pasting
+	DisplayObject* objectToPaste;
 
 	//camera
 	DirectX::SimpleMath::Vector3		m_camPosition;

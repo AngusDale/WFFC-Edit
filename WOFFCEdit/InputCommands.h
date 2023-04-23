@@ -13,4 +13,5 @@ struct InputCommands
 	bool mouse_LB_Down;
 	bool allowCamera_movement;
 	bool copy;
+	bool paste;
 };

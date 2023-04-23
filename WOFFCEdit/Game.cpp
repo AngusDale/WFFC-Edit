@@ -418,9 +418,21 @@ void Game::SaveDisplayChunk(ChunkObject * SceneChunk)
 
 void Game::CopyObject(int i)
 {
-    DisplayObject a = m_displayList[i];
+    if (i < 0)
+        return;
+
+    objectToPaste = &m_displayList[i];
+}
+
+void Game::PasteObject()
+{
+    if (objectToPaste == nullptr)
+        return;
+
+    DisplayObject a = *objectToPaste;
     a.m_position += Vector3(0, 5, 0);
     m_displayList.push_back(a);
+    objectToPaste = nullptr;
 }
 
 #ifdef DXTK_AUDIO

@@ -299,6 +299,10 @@ void ToolMain::Tick(MSG *msg)
 		m_toolInputCommands.copy = false;
 	}
 
+	if (m_toolInputCommands.paste) {
+		m_d3dRenderer.PasteObject();
+	}
+
 
 	//Renderer Update Call
 	m_d3dRenderer.Tick(&m_toolInputCommands);
@@ -378,6 +382,13 @@ void ToolMain::UpdateInput(MSG * msg)
 	}
 	else {
 		m_toolInputCommands.copy = false;
+	}
+
+	if (m_keyArray['V']) {
+		m_toolInputCommands.paste = true;
+	}
+	else {
+		m_toolInputCommands.paste = false;
 	}
 
 	//WASD
