@@ -12,4 +12,5 @@ struct InputCommands
 	int mouse_Y;
 	bool mouse_LB_Down;
 	bool allowCamera_movement;
+	bool copy;
 };

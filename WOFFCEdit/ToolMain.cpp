@@ -294,6 +294,11 @@ void ToolMain::Tick(MSG *msg)
 		m_toolInputCommands.mouse_LB_Down = false;
 	}
 
+	if (m_toolInputCommands.copy) {
+		m_d3dRenderer.CopyObject(m_selectedObject);
+		m_toolInputCommands.copy = false;
+	}
+
 
 	//Renderer Update Call
 	m_d3dRenderer.Tick(&m_toolInputCommands);
@@ -361,11 +366,19 @@ void ToolMain::UpdateInput(MSG * msg)
 		m_toolInputCommands.rotRight = true;
 	}
 	else m_toolInputCommands.rotRight = false;
+
 	if (m_keyArray['Q'])
 	{
 		m_toolInputCommands.rotLeft = true;
 	}
 	else m_toolInputCommands.rotLeft = false;
+
+	if (m_keyArray['C']) {
+		m_toolInputCommands.copy = true;
+	}
+	else {
+		m_toolInputCommands.copy = false;
+	}
 
 	//WASD
 }
