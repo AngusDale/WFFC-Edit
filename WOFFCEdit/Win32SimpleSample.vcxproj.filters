@@ -59,6 +59,9 @@
     <ClCompile Include="SelectDialogue.cpp">
       <Filter>MFC</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeviceResources.h">
@@ -107,6 +110,9 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="SelectDialogue.h">
       <Filter>MFC</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

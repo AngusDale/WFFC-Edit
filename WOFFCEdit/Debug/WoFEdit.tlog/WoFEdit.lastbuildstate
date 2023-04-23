@@ -1,2 +1,2 @@
-#TargetFrameworkVersion=v4.0:PlatformToolSet=v141:EnableManagedIncrementalBuild=false:VCToolArchitecture=Native32Bit:WindowsTargetPlatformVersion=8.1
-Debug|Win32|C:\Programming\WFFC\WOFFCEdit\|
+PlatformToolSet=v142:VCToolArchitecture=Native32Bit:VCToolsVersion=14.29.30133:VCServicingVersionMFC=14.29.30136:VCServicingVersionCrtHeaders=14.29.30136:TargetPlatformVersion=10.0.19041.0:
+Debug|Win32|C:\Users\angus\Documents\tools\WFFC-Edit\WOFFCEdit\|

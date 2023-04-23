@@ -11,6 +11,7 @@
 #include "DisplayChunk.h"
 #include "ChunkObject.h"
 #include "InputCommands.h"
+#include "Camera.h"
 #include <vector>
 
 
@@ -51,6 +52,8 @@ public:
 	void SaveDisplayChunk(ChunkObject *SceneChunk);	//saves geometry et al
 	void ClearDisplayList();
 
+	int MousePicking();
+
 #ifdef DXTK_AUDIO
 	void NewAudioDevice();
 #endif
@@ -64,11 +67,14 @@ private:
 
 	void XM_CALLCONV DrawGrid(DirectX::FXMVECTOR xAxis, DirectX::FXMVECTOR yAxis, DirectX::FXMVECTOR origin, size_t xdivs, size_t ydivs, DirectX::GXMVECTOR color);
 
+
+
 	//tool specific
 	std::vector<DisplayObject>			m_displayList;
 	DisplayChunk						m_displayChunk;
 	InputCommands						m_InputCommands;
 
+	RECT		m_ScreenDimensions;
 	//functionality
 	float								m_movespeed;
 
@@ -92,6 +98,8 @@ private:
     std::unique_ptr<DirectX::GamePad>       m_gamePad;
     std::unique_ptr<DirectX::Keyboard>      m_keyboard;
     std::unique_ptr<DirectX::Mouse>         m_mouse;
+
+	std::unique_ptr<Camera>					m_camera;
 
     // DirectXTK objects.
     std::unique_ptr<DirectX::CommonStates>                                  m_states;
@@ -123,8 +131,6 @@ private:
 #endif
 
     DirectX::SimpleMath::Matrix                                             m_world;
-    DirectX::SimpleMath::Matrix                                             m_view;
-    DirectX::SimpleMath::Matrix                                             m_projection;
 
 
 };
