@@ -9,15 +9,19 @@ class Camera
 {
 public:
 	Camera();
-	Camera(Vector3 position, Vector3 lookAt);
-
-	bool HandleInput(const InputCommands& input, const float dt);
-	void Update(const float dt);
+	Camera(Vector3 position, Vector3 lookAt, int width, int height);
+	
+	void Update(const InputCommands& input, const float dt);
 	
 private:
+	const int m_width;
+	const int m_height;
+
 	const float		m_rotRate;
 	const float		m_rotSensitivity;
 	const float		m_moveSpeed;
+
+	Vector2 m_prevMousePos;
 
 	Vector3			m_position;
 	Vector3			m_orientation;
@@ -25,6 +29,8 @@ private:
 	Vector3			m_lookDirection;
 	Vector3			m_right;
 	Vector3			m_up;
+
+
 
 	Matrix			m_view;
 	Matrix			m_projection;

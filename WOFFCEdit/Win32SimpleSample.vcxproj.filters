@@ -17,6 +17,9 @@
     <Filter Include="SQLITE">
       <UniqueIdentifier>{a006b0b6-46b2-4c4f-808a-ec8fe3e790eb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer\Commands">
+      <UniqueIdentifier>{502df7cd-55d5-4401-97b9-ace6d5864709}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -113,6 +116,15 @@
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Command.h">
+      <Filter>Renderer\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="Paste.h">
+      <Filter>Renderer\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandController.h">
+      <Filter>Renderer\Commands</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -7,6 +7,8 @@
 #include "DisplayObject.h"
 #include <string>
 
+#include "Paste.h"
+
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -38,7 +40,7 @@ Game::~Game()
 // Initialize the Direct3D resources required to run.
 void Game::Initialize(HWND window, int width, int height)
 {
-    m_camera = std::make_unique<Camera>(Vector3(0,3.7,-3.75), Vector3(0,0,0));
+    m_camera = std::make_unique<Camera>(Vector3(0,3.7,-3.75), Vector3(0,0,0), width, height);
     m_gamePad = std::make_unique<GamePad>();
 
     m_keyboard = std::make_unique<Keyboard>();
@@ -115,10 +117,8 @@ void Game::Tick(InputCommands *Input)
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer)
 {
-	m_camera->Update(m_timer.GetElapsedSeconds());
-    if (m_InputCommands.allowCamera_movement) {
-        m_camera->HandleInput(m_InputCommands, m_timer.GetElapsedSeconds());
-    }
+    float time = timer.GetElapsedSeconds();
+    m_camera->Update(m_InputCommands, time);
 	
     m_batchEffect->SetView(m_camera->GetView());
     m_batchEffect->SetWorld(Matrix::Identity);
@@ -179,7 +179,7 @@ void Game::Render()
 	//CAMERA POSITION ON HUD
 	m_sprites->Begin();
 	WCHAR   Buffer[256];
-	std::wstring var = L"Cam X: " + std::to_wstring(m_camPosition.x) + L"Cam Z: " + std::to_wstring(m_camPosition.z);
+	std::wstring var = L"Cam X: " + std::to_wstring(m_camera->GetPosition().x) + L"Cam Z: " + std::to_wstring(m_camera->GetPosition().z);
 	m_font->DrawString(m_sprites.get(), var.c_str() , XMFLOAT2(100, 10), Colors::Yellow);
 	m_sprites->End();
 
@@ -329,8 +329,9 @@ void Game::BuildDisplayList(std::vector<SceneObject> * SceneGraph)
 		m_displayList.clear();		//if not, empty it
 	}
 
-	//for every item in the scenegraph
-	int numObjects = SceneGraph->size();
+    //for every item in the scenegraph
+    int numObjects = SceneGraph->size();
+    m_displayList.reserve(numObjects);
 	for (int i = 0; i < numObjects; i++)
 	{
 		
@@ -424,6 +425,18 @@ void Game::CopyObject(int i)
     objectToPaste = &m_displayList[i];
 }
 
+void Game::DeleteObject(int i)
+{
+	if (i < 0)
+		return;
+	m_displayList.erase(m_displayList.begin() + i);
+}
+
+void Game::Undo()
+{
+	m_commandController.Pop();
+}
+
 void Game::PasteObject()
 {
     if (objectToPaste == nullptr)
@@ -433,6 +446,9 @@ void Game::PasteObject()
     a.m_position += Vector3(0, 5, 0);
     m_displayList.push_back(a);
     objectToPaste = nullptr;
+
+    auto* command = new Paste<DisplayObject>(m_displayList.size() - 1, m_displayList);
+    m_commandController.PushToHistory(command);
 }
 
 #ifdef DXTK_AUDIO

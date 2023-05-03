@@ -3,6 +3,8 @@
 #include <vector>
 #include <sstream>
 
+#include "Paste.h"
+
 //
 //ToolMain Class
 ToolMain::ToolMain()
@@ -293,16 +295,18 @@ void ToolMain::Tick(MSG *msg)
 		m_selectedObject = m_d3dRenderer.MousePicking();
 		m_toolInputCommands.mouse_LB_Down = false;
 	}
-
 	if (m_toolInputCommands.copy) {
 		m_d3dRenderer.CopyObject(m_selectedObject);
 		m_toolInputCommands.copy = false;
 	}
-
 	if (m_toolInputCommands.paste) {
 		m_d3dRenderer.PasteObject();
+		m_toolInputCommands.paste = false;
 	}
-
+	if (m_toolInputCommands.undo) {
+		m_d3dRenderer.Undo();
+		m_toolInputCommands.undo = false;
+	}
 
 	//Renderer Update Call
 	m_d3dRenderer.Tick(&m_toolInputCommands);
@@ -342,54 +346,18 @@ void ToolMain::UpdateInput(MSG * msg)
 	}
 	//here we update all the actual app functionality that we want.  This information will either be used int toolmain, or sent down to the renderer (Camera movement etc
 	//WASD movement
-	if (m_keyArray['W'])
-	{
-		m_toolInputCommands.forward = true;
-	}
-	else m_toolInputCommands.forward = false;
 	
-	if (m_keyArray['S'])
-	{
-		m_toolInputCommands.back = true;
-	}
-	else m_toolInputCommands.back = false;
-	if (m_keyArray['A'])
-	{
-		m_toolInputCommands.left = true;
-	}
-	else m_toolInputCommands.left = false;
-
-	if (m_keyArray['D'])
-	{
-		m_toolInputCommands.right = true;
-	}
-	else m_toolInputCommands.right = false;
-	//rotation
-	if (m_keyArray['E'])
-	{
-		m_toolInputCommands.rotRight = true;
-	}
-	else m_toolInputCommands.rotRight = false;
-
-	if (m_keyArray['Q'])
-	{
-		m_toolInputCommands.rotLeft = true;
-	}
-	else m_toolInputCommands.rotLeft = false;
-
-	if (m_keyArray['C']) {
-		m_toolInputCommands.copy = true;
-	}
-	else {
-		m_toolInputCommands.copy = false;
-	}
-
-	if (m_keyArray['V']) {
-		m_toolInputCommands.paste = true;
-	}
-	else {
-		m_toolInputCommands.paste = false;
-	}
+	m_toolInputCommands.forward		= m_keyArray['W'];	
+	m_toolInputCommands.back		= m_keyArray['S'];	
+	m_toolInputCommands.left		= m_keyArray['A'];	
+	m_toolInputCommands.right		= m_keyArray['D'];	
+	m_toolInputCommands.rotRight	= m_keyArray['E'];	
+	m_toolInputCommands.rotLeft		= m_keyArray['Q'];	
+	m_toolInputCommands.paste		= m_keyArray['V'];
+	m_toolInputCommands.copy		= m_keyArray['C'];
+	m_toolInputCommands.down		= m_keyArray['Q'];
+	m_toolInputCommands.up			= m_keyArray['E'];
+	m_toolInputCommands.undo		= m_keyArray['Z'];
 
 	//WASD
 }

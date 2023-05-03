@@ -14,6 +14,7 @@
 #include "Camera.h"
 #include <vector>
 
+#include "CommandController.h"
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -52,6 +53,8 @@ public:
 	void SaveDisplayChunk(ChunkObject *SceneChunk);	//saves geometry et al
 	void ClearDisplayList();
 	void CopyObject(int i);
+	void DeleteObject(int i);
+	void Undo();
 	void PasteObject();
 
 	DisplayObject coppiedObject;
@@ -76,20 +79,13 @@ private:
 	std::vector<DisplayObject>			m_displayList;
 	DisplayChunk						m_displayChunk;
 	InputCommands						m_InputCommands;
+	CommandController					m_commandController;
 
 	RECT		m_ScreenDimensions;
 
 
 	// copy pasting
 	DisplayObject* objectToPaste;
-
-	//camera
-	DirectX::SimpleMath::Vector3		m_camPosition;
-	DirectX::SimpleMath::Vector3		m_camOrientation;
-	DirectX::SimpleMath::Vector3		m_camLookAt;
-	DirectX::SimpleMath::Vector3		m_camLookDirection;
-	DirectX::SimpleMath::Vector3		m_camRight;
-	float m_camRotRate;
 
 	//control variables
 	bool m_grid;							//grid rendering on / off
