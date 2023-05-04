@@ -290,31 +290,51 @@ void ToolMain::Tick(MSG *msg)
 		//update Scenegraph
 		//add to scenegraph
 		//resend scenegraph to Direct X renderer
+	InputCommands tempInputCommands = m_toolInputCommands;
 	if (m_toolInputCommands.mouse_LB_Down)
 	{
 		m_selectedObject = m_d3dRenderer.MousePicking();
 		m_toolInputCommands.mouse_LB_Down = false;
 	}
-	if (m_toolInputCommands.copy) {
-		m_d3dRenderer.CopyObject(m_selectedObject);
-		m_toolInputCommands.copy = false;
-	}
-	if (m_toolInputCommands.paste) {
+
+	if (m_toolInputCommands.paste && !m_inputLastFrame.paste) {
 		m_d3dRenderer.PasteObject();
 		m_toolInputCommands.paste = false;
+		m_toolInputCommands.copy = false;
 	}
-	if (m_toolInputCommands.undo) {
+
+	if (m_toolInputCommands.copy && !m_inputLastFrame.copy) {
+		m_d3dRenderer.Copy(m_selectedObject);
+		m_toolInputCommands.copy = false;
+	}
+
+	if (m_toolInputCommands.undo & !m_inputLastFrame.undo) {
 		m_d3dRenderer.Undo();
 		m_toolInputCommands.undo = false;
 	}
+	if (m_toolInputCommands.redo & !m_inputLastFrame.redo) {
+		m_d3dRenderer.Redo();
+		m_toolInputCommands.redo = false;
+	}
+	if (m_toolInputCommands.editUp || m_toolInputCommands.editDown)
+	{
+		m_d3dRenderer.TerrainEdit();
+	}
+
+	if ((!m_toolInputCommands.editUp && !m_toolInputCommands.editDown) && (m_inputLastFrame.editUp || m_inputLastFrame.editDown))
+	{
+		m_d3dRenderer.RecalculateNormals();
+	}
+	m_inputLastFrame = tempInputCommands;
 
 	//Renderer Update Call
 	m_d3dRenderer.Tick(&m_toolInputCommands);
+
+
 }
 
 void ToolMain::UpdateInput(MSG * msg)
 {
-
 	switch (msg->message)
 	{
 		//Global inputs,  mouse position and keys etc
@@ -352,12 +372,16 @@ void ToolMain::UpdateInput(MSG * msg)
 	m_toolInputCommands.left		= m_keyArray['A'];	
 	m_toolInputCommands.right		= m_keyArray['D'];	
 	m_toolInputCommands.rotRight	= m_keyArray['E'];	
-	m_toolInputCommands.rotLeft		= m_keyArray['Q'];	
+	m_toolInputCommands.rotLeft		= m_keyArray['Q'];
+	
 	m_toolInputCommands.paste		= m_keyArray['V'];
 	m_toolInputCommands.copy		= m_keyArray['C'];
 	m_toolInputCommands.down		= m_keyArray['Q'];
 	m_toolInputCommands.up			= m_keyArray['E'];
 	m_toolInputCommands.undo		= m_keyArray['Z'];
+	m_toolInputCommands.redo		= m_keyArray['R'];
+	m_toolInputCommands.editDown	= m_keyArray['J'];
+	m_toolInputCommands.editUp		= m_keyArray['K'];
 
 	//WASD
 }

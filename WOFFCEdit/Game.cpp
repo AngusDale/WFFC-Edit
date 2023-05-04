@@ -17,6 +17,7 @@ using Microsoft::WRL::ComPtr;
 
 Game::Game()
 {
+    m_commandController = std::make_unique<CommandController>(50);
     m_deviceResources = std::make_unique<DX::DeviceResources>();
     m_deviceResources->RegisterDeviceNotify(this);
 	m_displayList.clear();
@@ -118,7 +119,8 @@ void Game::Tick(InputCommands *Input)
 void Game::Update(DX::StepTimer const& timer)
 {
     float time = timer.GetElapsedSeconds();
-    m_camera->Update(m_InputCommands, time);
+    m_camera->HandleInput(m_InputCommands, time);
+    m_camera->Update(time);
 	
     m_batchEffect->SetView(m_camera->GetView());
     m_batchEffect->SetWorld(Matrix::Identity);
@@ -417,7 +419,7 @@ void Game::SaveDisplayChunk(ChunkObject * SceneChunk)
 	m_displayChunk.SaveHeightMap();			//save heightmap to file.
 }
 
-void Game::CopyObject(int i)
+void Game::Copy(int i)
 {
     if (i < 0)
         return;
@@ -429,12 +431,18 @@ void Game::DeleteObject(int i)
 {
 	if (i < 0)
 		return;
+
 	m_displayList.erase(m_displayList.begin() + i);
 }
 
 void Game::Undo()
 {
-	m_commandController.Pop();
+	m_commandController->Pop();
+}
+
+void Game::Redo()
+{
+    m_commandController->Redo();
 }
 
 void Game::PasteObject()
@@ -443,12 +451,12 @@ void Game::PasteObject()
         return;
 
     DisplayObject a = *objectToPaste;
-    a.m_position += Vector3(0, 5, 0);
+    a.m_position += Vector3(0, m_displayList.back().m_position.y + 2, 0);
     m_displayList.push_back(a);
     objectToPaste = nullptr;
 
-    auto* command = new Paste<DisplayObject>(m_displayList.size() - 1, m_displayList);
-    m_commandController.PushToHistory(command);
+    auto* command = new Paste<DisplayObject>(a, m_displayList.size() - 1, m_displayList);
+    m_commandController->PushNewCommand(command);
 }
 
 #ifdef DXTK_AUDIO
@@ -568,6 +576,105 @@ void Game::OnDeviceRestored()
     CreateWindowSizeDependentResources();
 }
 #pragma endregion
+
+void Game::TerrainEdit()
+{
+	//intersection point and bool to check if we have an intersection
+	Vector3 IntersectionPoint;
+	bool intersection = false;
+
+	//setup near and far planes of frustum with mouse X and mouse y passed down from Toolmain.
+	const XMVECTOR nearSource = XMVectorSet(m_InputCommands.mouse_X, m_InputCommands.mouse_Y, 0.0f, 1.0f);
+	const XMVECTOR farSource = XMVectorSet(m_InputCommands.mouse_X, m_InputCommands.mouse_Y, 1.0f, 1.0f);
+
+	//Unproject the points on the near and far plane
+	const XMVECTOR nearPoint = XMVector3Unproject(nearSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
+	const XMVECTOR farPoint = XMVector3Unproject(farSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
+	
+	//loop through quads to check for line intersection
+	for (size_t i = 0; i < TERRAINRESOLUTION - 1; i++)
+	{
+		for (size_t j = 0; j < TERRAINRESOLUTION - 1; j++)
+		{
+			XMVECTOR v1 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i][j].position);
+			XMVECTOR v2 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i][j + 1].position);
+			XMVECTOR v3 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i + 1][j + 1].position);
+			XMVECTOR v4 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i + 1][j].position);
+
+			//get plane from vertices
+			XMVECTOR normal = XMVector3Normalize(XMVector3Cross(v2 - v1, v3 - v1));
+			float d = -XMVectorGetX(XMVector3Dot(normal, v1));
+			XMVECTOR plane = XMVectorSetW(normal, d);
+
+			//get intersection point
+			XMVECTOR intersects = XMPlaneIntersectLine(plane, nearPoint, farPoint);
+
+			if (!XMVector3Equal(intersects, XMVectorZero()))
+			{
+				//convert intersection point to vector3
+				Vector3 point;
+				XMStoreFloat3(&point, intersects);
+
+				// check if the point is inside the quad
+				if (point.x >= std::min(XMVectorGetX(v1), XMVectorGetX(v2)) && point.x <= std::max(XMVectorGetX(v1), XMVectorGetX(v2)) &&
+					point.z >= std::min(XMVectorGetZ(v1), XMVectorGetZ(v4)) && point.z <= std::max(XMVectorGetZ(v1), XMVectorGetZ(v4)))
+				{
+					//store point of intersection
+					IntersectionPoint = point;
+					intersection = true;
+					break;
+				}
+			}
+
+		}
+	}
+
+	//if line did not intersect terrain, return
+	if (!intersection)
+		return;
+
+	//loop through vertices and check if they are within a certain radius of the intersection point
+	for (int i = 0; i < TERRAINRESOLUTION; i++)
+	{
+		for (int j = 0; j < TERRAINRESOLUTION; j++)
+		{
+			//get distance between vertex and intersection point (ignoring y axis)
+			const float distance = Vector3::Distance(Vector3(IntersectionPoint.x, 0, IntersectionPoint.z), Vector3(m_displayChunk.m_terrainGeometry[i][j].position.x, 0, m_displayChunk.m_terrainGeometry[i][j].position.z));
+			const int outerRadius = 25;
+			const int innerRadius = 15;
+			if (distance < outerRadius)
+			{
+				float editDirection = m_InputCommands.editUp ? 1 : -1;
+
+				//if vertex is within radius, raise or lower it depending on direction, outer radius also factors in distance from intersection point
+				if (distance < innerRadius)
+					m_displayChunk.m_terrainGeometry[i][j].position.y += 0.25f * editDirection;
+				else
+					m_displayChunk.m_terrainGeometry[i][j].position.y += 0.25f * editDirection * (1 - ((distance - innerRadius) / 10.f));
+
+				//keep vertex within bounds of height map
+				if (m_displayChunk.m_terrainGeometry[i][j].position.y < 0)
+					m_displayChunk.m_terrainGeometry[i][j].position.y = 0;
+				else if (m_displayChunk.m_terrainGeometry[i][j].position.y > 64)
+					m_displayChunk.m_terrainGeometry[i][j].position.y = 64;
+
+				////recalculate normals
+				//m_displayChunk.CalculateTerrainNormal(i, j);
+				//std::pair<int, int> point;
+
+				////store points for undo/redo command
+				//point.first = i;
+				//point.second = j;
+				//m_points.push_back(point);
+			}
+		}
+	}
+}
+
+void Game::RecalculateNormals()
+{
+	m_displayChunk.CalculateTerrainNormals();
+}
 
 int Game::MousePicking()
 {

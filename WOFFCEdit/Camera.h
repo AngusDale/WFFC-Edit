@@ -11,7 +11,8 @@ public:
 	Camera();
 	Camera(Vector3 position, Vector3 lookAt, int width, int height);
 	
-	void Update(const InputCommands& input, const float dt);
+	void Update(const float dt);
+	void HandleInput(const InputCommands& input, const float dt);
 	
 private:
 	const int m_width;

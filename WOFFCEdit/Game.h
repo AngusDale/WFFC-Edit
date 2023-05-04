@@ -52,12 +52,15 @@ public:
 	void BuildDisplayChunk(ChunkObject *SceneChunk);
 	void SaveDisplayChunk(ChunkObject *SceneChunk);	//saves geometry et al
 	void ClearDisplayList();
-	void CopyObject(int i);
-	void DeleteObject(int i);
+	void Copy(int i);
 	void Undo();
+	void Redo();
+	void DeleteObject(int i);
 	void PasteObject();
 
 	DisplayObject coppiedObject;
+	void TerrainEdit();
+	void RecalculateNormals();
 	int MousePicking();
 
 #ifdef DXTK_AUDIO
@@ -79,7 +82,7 @@ private:
 	std::vector<DisplayObject>			m_displayList;
 	DisplayChunk						m_displayChunk;
 	InputCommands						m_InputCommands;
-	CommandController					m_commandController;
+	std::unique_ptr<CommandController>	m_commandController;
 
 	RECT		m_ScreenDimensions;
 

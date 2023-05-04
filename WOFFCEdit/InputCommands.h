@@ -18,4 +18,8 @@ struct InputCommands
 	bool copy;
 	bool paste;
 	bool undo;
+	bool redo;
+	bool editDown;
+	bool editUp;
+
 };

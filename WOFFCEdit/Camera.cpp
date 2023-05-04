@@ -19,13 +19,13 @@ Camera::Camera(Vector3 position, Vector3 lookAt, int width, int height) :
 {
 }
 
-void Camera::Update(const InputCommands& input, const float dt)
+void Camera::HandleInput(const InputCommands& input, const float dt)
 {
 	if (!input.allowCamera_movement) {
 		m_prevMousePos = Vector2(input.mouse_X, input.mouse_Y);
 		return;
 	}
-		
+
 	Vector2 delta = Vector2(input.mouse_X, input.mouse_Y) - m_prevMousePos;
 	m_prevMousePos = Vector2(input.mouse_X, input.mouse_Y);
 
@@ -33,7 +33,7 @@ void Camera::Update(const InputCommands& input, const float dt)
 	m_orientation.x -= delta.y * m_rotRate * dt;
 
 	Vector3 moveDirection = Vector3::Zero;
-	
+
 	if (input.forward)
 	{
 		moveDirection += m_lookDirection;
@@ -50,15 +50,19 @@ void Camera::Update(const InputCommands& input, const float dt)
 	{
 		moveDirection -= m_right;
 	}
+
 	moveDirection.Normalize();
 	m_position += (moveDirection * m_moveSpeed * dt);
-	
-	auto ToRadians = [](float x) { return x * 3.1415 / 180; };
+}
+
+void Camera::Update(const float dt)
+{
+	auto Rad = [](float x) { return x * 3.1415 / 180; };
 
 	// sphere equation
-	m_lookDirection.x = cos(ToRadians(m_orientation.y)) * cos(ToRadians(m_orientation.x));
-	m_lookDirection.y = sin(ToRadians(m_orientation.x));
-	m_lookDirection.z = sin(ToRadians(m_orientation.y)) * cos(ToRadians(m_orientation.x));
+	m_lookDirection.x = cos(Rad(m_orientation.y)) * cos(Rad(m_orientation.x));
+	m_lookDirection.y = sin(Rad(m_orientation.x));
+	m_lookDirection.z = sin(Rad(m_orientation.y)) * cos(Rad(m_orientation.x));
 	m_lookDirection.Normalize();
 
 	//create right vector from look Direction
