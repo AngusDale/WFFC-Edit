@@ -281,47 +281,37 @@ void ToolMain::onActionSaveTerrain()
 
 void ToolMain::Tick(MSG *msg)
 {
-	//do we have a selection
-	//do we have a mode
-	//are we clicking / dragging /releasing
-	//has something changed
-		//update Scenegraph
-		//add to scenegraph
-		//resend scenegraph to Direct X renderer
 	InputCommands tempInputCommands = m_toolInputCommands;
 
-
-
-	if (m_toolInputCommands.mouse_LB_Down)
+	//TERRAIN
+	if (m_toolInputCommands.editUp || m_toolInputCommands.editDown)
 	{
-		m_d3dRenderer.MoveObject();
+		m_d3dRenderer.EditTerrain();
+		m_d3dRenderer.RecalculateNormals();
 	}
 
+	// MOUSE CONTROL
 	if (m_toolInputCommands.mouse_LB_Down && !m_inputLastFrame.mouse_LB_Down)
 	{
 		m_selectedObject = m_d3dRenderer.MousePicking();
 		m_d3dRenderer.StartPushPosition();
 	}
 
+	if (m_toolInputCommands.mouse_LB_Down)
+		m_d3dRenderer.MoveObject();
+
 	if(!m_toolInputCommands.mouse_LB_Down && m_inputLastFrame.mouse_LB_Down)
-	{
 		m_d3dRenderer.StopPushPosition();
-	}
 
-	if (m_toolInputCommands.paste && !m_inputLastFrame.paste) {
-		m_d3dRenderer.PasteObject();
-		m_toolInputCommands.paste = false;
-		m_toolInputCommands.copy = false;
-	}
+	// SHORTCUTS
 
-	if (m_toolInputCommands.editUp || m_toolInputCommands.editDown)
-	{
-		m_d3dRenderer.EditTerrain();
-		m_d3dRenderer.RecalculateNormals();
-	}
-	
+	//todo: cut
+
 	if (m_toolInputCommands.copy && !m_inputLastFrame.copy)
 		m_d3dRenderer.Copy(m_selectedObject);
+
+	if (m_toolInputCommands.paste && !m_inputLastFrame.paste)
+		m_d3dRenderer.PasteObject();
 
 	if (m_toolInputCommands.undo & !m_inputLastFrame.undo)
 		m_d3dRenderer.Undo();
@@ -333,8 +323,6 @@ void ToolMain::Tick(MSG *msg)
 
 	//Renderer Update Call
 	m_d3dRenderer.Tick(&m_toolInputCommands);
-
-
 }
 
 void ToolMain::UpdateInput(MSG * msg)
