@@ -5,7 +5,11 @@
 class CommandController
 {
 public:
-	CommandController(int memory) : m_memory(memory) {}
+	CommandController(int memory) : m_memory(memory), m_cachedCommand(nullptr)
+	{
+		m_undoStack.reserve(memory);
+		m_redoStack.reserve(memory);
+	}
 
 	void PushNewCommand(Command* command)
 	{
@@ -25,7 +29,7 @@ public:
 		}
 	}
 
-	void Pop()
+	void Undo()
 	{
 		if (!m_undoStack.empty())
 		{
@@ -45,10 +49,15 @@ public:
 		}
 	}
 
+	Command* Top() { return m_undoStack.back(); }
+	
+	Command* m_cachedCommand;
+
 private:
 
 	std::vector<Command*> m_undoStack;
 	std::vector<Command*> m_redoStack;
+
 
 	const int m_memory;
 };

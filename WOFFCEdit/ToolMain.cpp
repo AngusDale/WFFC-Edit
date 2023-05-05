@@ -3,8 +3,6 @@
 #include <vector>
 #include <sstream>
 
-#include "Paste.h"
-
 //
 //ToolMain Class
 ToolMain::ToolMain()
@@ -291,10 +289,23 @@ void ToolMain::Tick(MSG *msg)
 		//add to scenegraph
 		//resend scenegraph to Direct X renderer
 	InputCommands tempInputCommands = m_toolInputCommands;
+
+
+
 	if (m_toolInputCommands.mouse_LB_Down)
 	{
+		m_d3dRenderer.MoveObject();
+	}
+
+	if (m_toolInputCommands.mouse_LB_Down && !m_inputLastFrame.mouse_LB_Down)
+	{
 		m_selectedObject = m_d3dRenderer.MousePicking();
-		m_toolInputCommands.mouse_LB_Down = false;
+		m_d3dRenderer.StartPushPosition();
+	}
+
+	if(!m_toolInputCommands.mouse_LB_Down && m_inputLastFrame.mouse_LB_Down)
+	{
+		m_d3dRenderer.StopPushPosition();
 	}
 
 	if (m_toolInputCommands.paste && !m_inputLastFrame.paste) {
@@ -303,28 +314,21 @@ void ToolMain::Tick(MSG *msg)
 		m_toolInputCommands.copy = false;
 	}
 
-	if (m_toolInputCommands.copy && !m_inputLastFrame.copy) {
-		m_d3dRenderer.Copy(m_selectedObject);
-		m_toolInputCommands.copy = false;
-	}
-
-	if (m_toolInputCommands.undo & !m_inputLastFrame.undo) {
-		m_d3dRenderer.Undo();
-		m_toolInputCommands.undo = false;
-	}
-	if (m_toolInputCommands.redo & !m_inputLastFrame.redo) {
-		m_d3dRenderer.Redo();
-		m_toolInputCommands.redo = false;
-	}
 	if (m_toolInputCommands.editUp || m_toolInputCommands.editDown)
 	{
-		m_d3dRenderer.TerrainEdit();
-	}
-
-	if ((!m_toolInputCommands.editUp && !m_toolInputCommands.editDown) && (m_inputLastFrame.editUp || m_inputLastFrame.editDown))
-	{
+		m_d3dRenderer.EditTerrain();
 		m_d3dRenderer.RecalculateNormals();
 	}
+	
+	if (m_toolInputCommands.copy && !m_inputLastFrame.copy)
+		m_d3dRenderer.Copy(m_selectedObject);
+
+	if (m_toolInputCommands.undo & !m_inputLastFrame.undo)
+		m_d3dRenderer.Undo();
+
+	if (m_toolInputCommands.redo & !m_inputLastFrame.redo)
+		m_d3dRenderer.Redo();
+
 	m_inputLastFrame = tempInputCommands;
 
 	//Renderer Update Call
@@ -354,6 +358,10 @@ void ToolMain::UpdateInput(MSG * msg)
 	case WM_LBUTTONDOWN:
 		//mouse left pressed.	
 		m_toolInputCommands.mouse_LB_Down = true;
+		break;
+	case WM_LBUTTONUP:
+		//mouse left pressed.	
+		m_toolInputCommands.mouse_LB_Down = false;
 		break;
 	case WM_RBUTTONDOWN:
 		//mouse right pressed.	

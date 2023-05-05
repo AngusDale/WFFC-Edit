@@ -193,8 +193,9 @@
     <ClInclude Include="InputCommands.h" />
     <ClInclude Include="MFCFrame.h" />
     <ClInclude Include="MFCRenderFrame.h" />
-    <ClInclude Include="Paste.h" />
+    <ClInclude Include="PasteCommand.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="PositionCommand.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SceneObject.h" />
     <ClInclude Include="SelectDialogue.h" />

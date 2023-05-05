@@ -7,8 +7,8 @@
 #include "DisplayObject.h"
 #include <string>
 
-#include "Paste.h"
-
+#include "PasteCommand.h"
+#include "PositionCommand.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -17,7 +17,6 @@ using Microsoft::WRL::ComPtr;
 
 Game::Game()
 {
-    m_commandController = std::make_unique<CommandController>(50);
     m_deviceResources = std::make_unique<DX::DeviceResources>();
     m_deviceResources->RegisterDeviceNotify(this);
 	m_displayList.clear();
@@ -42,6 +41,7 @@ Game::~Game()
 void Game::Initialize(HWND window, int width, int height)
 {
     m_camera = std::make_unique<Camera>(Vector3(0,3.7,-3.75), Vector3(0,0,0), width, height);
+	m_commandController = std::make_unique<CommandController>(100);
     m_gamePad = std::make_unique<GamePad>();
 
     m_keyboard = std::make_unique<Keyboard>();
@@ -437,7 +437,7 @@ void Game::DeleteObject(int i)
 
 void Game::Undo()
 {
-	m_commandController->Pop();
+	m_commandController->Undo();
 }
 
 void Game::Redo()
@@ -450,13 +450,72 @@ void Game::PasteObject()
     if (objectToPaste == nullptr)
         return;
 
+	const XMVECTOR nearSource = XMVectorSet(m_InputCommands.mouse_X, m_InputCommands.mouse_Y, 0.0f, 1.0f);
+	const XMVECTOR farSource = XMVectorSet(m_InputCommands.mouse_X, m_InputCommands.mouse_Y, 1.0f, 1.0f);
+
+	//Unproject the points on the near and far plane
+	const XMVECTOR nearPoint = XMVector3Unproject(nearSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
+	const XMVECTOR farPoint = XMVector3Unproject(farSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
+
+	Vector3 dir = farPoint - nearPoint;
+	dir.Normalize();
+
+	Vector3 dirToObj = objectToPaste->m_position - m_camera->GetPosition();
+	float dist = dirToObj.Length();
+
     DisplayObject a = *objectToPaste;
-    a.m_position += Vector3(0, m_displayList.back().m_position.y + 2, 0);
+    a.m_position = dir * dist + m_camera->GetPosition();
     m_displayList.push_back(a);
     objectToPaste = nullptr;
 
-    auto* command = new Paste<DisplayObject>(a, m_displayList.size() - 1, m_displayList);
+    auto* command = new PasteCommand<DisplayObject>(a, m_displayList.size() - 1, m_displayList);
     m_commandController->PushNewCommand(command);
+}
+
+void Game::StartPushPosition()
+{
+	if (!m_selectedObject)
+		return;
+	auto* command = new PositionCommand(m_selectedObject->m_position);
+	m_commandController->m_cachedCommand = command;
+}
+
+void Game::StopPushPosition()
+{
+	PositionCommand* command = reinterpret_cast<PositionCommand*>(m_commandController->m_cachedCommand);
+
+	if(!command || !m_selectedObject)
+		return;
+
+	command->SetNewPos(m_selectedObject->m_position);
+	m_commandController->PushNewCommand(command);
+}
+
+void Game::MoveObject()
+{
+	if (!m_selectedObject)
+		return;
+
+	const XMVECTOR nearSource = XMVectorSet(m_InputCommands.mouse_X, m_InputCommands.mouse_Y, 0.0f, 1.0f);
+	const XMVECTOR farSource = XMVectorSet(m_InputCommands.mouse_X, m_InputCommands.mouse_Y, 1.0f, 1.0f);
+
+	//Unproject the points on the near and far plane
+	const XMVECTOR nearPoint = XMVector3Unproject(nearSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
+	const XMVECTOR farPoint = XMVector3Unproject(farSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
+
+	Vector3 dir = farPoint - nearPoint;
+	dir.Normalize();
+	Ray ray = Ray(nearPoint, dir);
+
+	//inverse lerp
+	Vector3 camPos = m_camera->GetPosition();
+
+	//dist to far from camera
+	float distToObj = Vector3::Distance(camPos, m_selectedObject->m_position);
+	float t = distToObj;
+
+	m_selectedObject->m_position = camPos + (ray.direction * t);
+
 }
 
 #ifdef DXTK_AUDIO
@@ -577,10 +636,10 @@ void Game::OnDeviceRestored()
 }
 #pragma endregion
 
-void Game::TerrainEdit()
+void Game::EditTerrain()
 {
 	//intersection point and bool to check if we have an intersection
-	Vector3 IntersectionPoint;
+	Vector3 intersectionPoint;
 	bool intersection = false;
 
 	//setup near and far planes of frustum with mouse X and mouse y passed down from Toolmain.
@@ -591,41 +650,44 @@ void Game::TerrainEdit()
 	const XMVECTOR nearPoint = XMVector3Unproject(nearSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
 	const XMVECTOR farPoint = XMVector3Unproject(farSource, 0.0f, 0.0f, m_ScreenDimensions.right, m_ScreenDimensions.bottom, m_deviceResources->GetScreenViewport().MinDepth, m_deviceResources->GetScreenViewport().MaxDepth, m_camera->GetProjection(), m_camera->GetView(), m_world);
 	
+	Vector3 dir = farPoint - nearPoint;
+	dir.Normalize();
+	Ray ray = Ray(nearPoint, dir);
+
 	//loop through quads to check for line intersection
 	for (size_t i = 0; i < TERRAINRESOLUTION - 1; i++)
 	{
 		for (size_t j = 0; j < TERRAINRESOLUTION - 1; j++)
-		{
-			XMVECTOR v1 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i][j].position);
-			XMVECTOR v2 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i][j + 1].position);
-			XMVECTOR v3 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i + 1][j + 1].position);
-			XMVECTOR v4 = XMLoadFloat3(&m_displayChunk.m_terrainGeometry[i + 1][j].position);
+		{			
+			Vector3 v1 = m_displayChunk.m_terrainGeometry[i][j].position;
+			Vector3 v2 = m_displayChunk.m_terrainGeometry[i][j + 1].position;
+			Vector3 v3 = m_displayChunk.m_terrainGeometry[i + 1][j + 1].position;
+			Vector3 v4 = m_displayChunk.m_terrainGeometry[i + 1][j].position;
 
 			//get plane from vertices
-			XMVECTOR normal = XMVector3Normalize(XMVector3Cross(v2 - v1, v3 - v1));
-			float d = -XMVectorGetX(XMVector3Dot(normal, v1));
-			XMVECTOR plane = XMVectorSetW(normal, d);
+			Vector3 tangent = v2 - v1;
+			Vector3 bitangent = v3 - v1;
+			Vector3 normal = -tangent.Cross(bitangent);
+			normal.Normalize();
+			float d = -normal.Dot(v1);
+			//create plane
+			Plane plane = Plane(normal, d);
 
-			//get intersection point
-			XMVECTOR intersects = XMPlaneIntersectLine(plane, nearPoint, farPoint);
+			float t;
+			if(!ray.Intersects(plane, t))
+				continue;
 
-			if (!XMVector3Equal(intersects, XMVectorZero()))
+			Vector3 point = ray.position + ray.direction * t;
+
+			// check if the point is inside the quad
+			if (point.x >= std::min(v1.x, v2.x) && point.x <= std::max(v1.x, v2.x) &&
+				point.z >= std::min(v1.z, v4.z) && point.z <= std::max(v1.z, v4.z))
 			{
-				//convert intersection point to vector3
-				Vector3 point;
-				XMStoreFloat3(&point, intersects);
-
-				// check if the point is inside the quad
-				if (point.x >= std::min(XMVectorGetX(v1), XMVectorGetX(v2)) && point.x <= std::max(XMVectorGetX(v1), XMVectorGetX(v2)) &&
-					point.z >= std::min(XMVectorGetZ(v1), XMVectorGetZ(v4)) && point.z <= std::max(XMVectorGetZ(v1), XMVectorGetZ(v4)))
-				{
-					//store point of intersection
-					IntersectionPoint = point;
-					intersection = true;
-					break;
-				}
+				//store point of intersection
+				intersectionPoint = point;
+				intersection = true;
+				break;
 			}
-
 		}
 	}
 
@@ -639,7 +701,7 @@ void Game::TerrainEdit()
 		for (int j = 0; j < TERRAINRESOLUTION; j++)
 		{
 			//get distance between vertex and intersection point (ignoring y axis)
-			const float distance = Vector3::Distance(Vector3(IntersectionPoint.x, 0, IntersectionPoint.z), Vector3(m_displayChunk.m_terrainGeometry[i][j].position.x, 0, m_displayChunk.m_terrainGeometry[i][j].position.z));
+			const float distance = Vector3::Distance(Vector3(intersectionPoint.x, 0, intersectionPoint.z), Vector3(m_displayChunk.m_terrainGeometry[i][j].position.x, 0, m_displayChunk.m_terrainGeometry[i][j].position.z));
 			const int outerRadius = 25;
 			const int innerRadius = 15;
 			if (distance < outerRadius)
@@ -659,7 +721,6 @@ void Game::TerrainEdit()
 					m_displayChunk.m_terrainGeometry[i][j].position.y = 64;
 
 				////recalculate normals
-				//m_displayChunk.CalculateTerrainNormal(i, j);
 				//std::pair<int, int> point;
 
 				////store points for undo/redo command
@@ -719,7 +780,9 @@ int Game::MousePicking()
 			}
 		}
 	}
-
+		
+	m_selectedObject = selectedID == -1 ? nullptr : &m_displayList[selectedID];
+	
 	//if we got a hit.  return it.  
 	return selectedID;
 }

@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <SimpleMath.h>
 
 Camera::Camera(Vector3 position, Vector3 lookAt, int width, int height) :
 
@@ -29,18 +30,24 @@ void Camera::HandleInput(const InputCommands& input, const float dt)
 	Vector2 delta = Vector2(input.mouse_X, input.mouse_Y) - m_prevMousePos;
 	m_prevMousePos = Vector2(input.mouse_X, input.mouse_Y);
 
-	m_orientation.y -= delta.x * m_rotRate * dt;
-	m_orientation.x -= delta.y * m_rotRate * dt;
+	m_orientation.y += delta.x * m_rotRate * dt;
+	m_orientation.x -= delta.y * m_rotRate * dt;	
+
+	m_orientation.x = std::min(std::max(m_orientation.x, -89.f), 89.f);
 
 	Vector3 moveDirection = Vector3::Zero;
 
+	Vector3 planarMoveDir = m_lookDirection;
+	planarMoveDir.y = 0;
+	planarMoveDir.Normalize();
+
 	if (input.forward)
 	{
-		moveDirection += m_lookDirection;
+		moveDirection += planarMoveDir;
 	}
 	if (input.back)
 	{
-		moveDirection -= m_lookDirection;
+		moveDirection -= planarMoveDir;
 	}
 	if (input.right)
 	{
@@ -49,6 +56,14 @@ void Camera::HandleInput(const InputCommands& input, const float dt)
 	if (input.left)
 	{
 		moveDirection -= m_right;
+	}
+	if (input.up)
+	{
+		moveDirection += Vector3::Up;
+	}
+	if (input.down)
+	{
+		moveDirection -= Vector3::Up;
 	}
 
 	moveDirection.Normalize();

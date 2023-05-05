@@ -120,10 +120,13 @@
     <ClInclude Include="Command.h">
       <Filter>Renderer\Commands</Filter>
     </ClInclude>
-    <ClInclude Include="Paste.h">
+    <ClInclude Include="PasteCommand.h">
       <Filter>Renderer\Commands</Filter>
     </ClInclude>
     <ClInclude Include="CommandController.h">
+      <Filter>Renderer\Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="PositionCommand.h">
       <Filter>Renderer\Commands</Filter>
     </ClInclude>
   </ItemGroup>

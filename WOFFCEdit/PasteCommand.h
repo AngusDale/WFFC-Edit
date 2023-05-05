@@ -4,10 +4,10 @@
 #include "Command.h"
 
 template <class T> 
-class Paste : public Command
+class PasteCommand : public Command
 {
 public:
-	Paste(T element,  int index, std::vector<T>& container)
+	PasteCommand(T element,  int index, std::vector<T>& container)
 	: m_element(element), m_index(index), m_container(container){}
 
 	void undo() override

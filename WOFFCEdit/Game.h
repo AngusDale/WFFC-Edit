@@ -52,14 +52,18 @@ public:
 	void BuildDisplayChunk(ChunkObject *SceneChunk);
 	void SaveDisplayChunk(ChunkObject *SceneChunk);	//saves geometry et al
 	void ClearDisplayList();
+
 	void Copy(int i);
 	void Undo();
 	void Redo();
 	void DeleteObject(int i);
 	void PasteObject();
+	void StartPushPosition();
+	void StopPushPosition();
+	void MoveObject();
+	
 
-	DisplayObject coppiedObject;
-	void TerrainEdit();
+	void EditTerrain();
 	void RecalculateNormals();
 	int MousePicking();
 
@@ -88,6 +92,7 @@ private:
 
 
 	// copy pasting
+	DisplayObject* m_selectedObject;
 	DisplayObject* objectToPaste;
 
 	//control variables
