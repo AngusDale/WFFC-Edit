@@ -631,7 +631,6 @@ void Game::OnDeviceLost()
 void Game::OnDeviceRestored()
 {
     CreateDeviceDependentResources();
-
     CreateWindowSizeDependentResources();
 }
 #pragma endregion
@@ -695,6 +694,8 @@ void Game::EditTerrain()
 	if (!intersection)
 		return;
 
+	const int outerRadius = 25;
+	const int innerRadius = 15;
 	//loop through vertices and check if they are within a certain radius of the intersection point
 	for (int i = 0; i < TERRAINRESOLUTION; i++)
 	{
@@ -702,31 +703,22 @@ void Game::EditTerrain()
 		{
 			//get distance between vertex and intersection point (ignoring y axis)
 			const float distance = Vector3::Distance(Vector3(intersectionPoint.x, 0, intersectionPoint.z), Vector3(m_displayChunk.m_terrainGeometry[i][j].position.x, 0, m_displayChunk.m_terrainGeometry[i][j].position.z));
-			const int outerRadius = 25;
-			const int innerRadius = 15;
+			
 			if (distance < outerRadius)
 			{
 				float editDirection = m_InputCommands.editUp ? 1 : -1;
 
 				//if vertex is within radius, raise or lower it depending on direction, outer radius also factors in distance from intersection point
-				if (distance < innerRadius)
+				if (distance < innerRadius) {
 					m_displayChunk.m_terrainGeometry[i][j].position.y += 0.25f * editDirection;
-				else
-					m_displayChunk.m_terrainGeometry[i][j].position.y += 0.25f * editDirection * (1 - ((distance - innerRadius) / 10.f));
-
-				//keep vertex within bounds of height map
-				if (m_displayChunk.m_terrainGeometry[i][j].position.y < 0)
-					m_displayChunk.m_terrainGeometry[i][j].position.y = 0;
-				else if (m_displayChunk.m_terrainGeometry[i][j].position.y > 64)
-					m_displayChunk.m_terrainGeometry[i][j].position.y = 64;
-
-				////recalculate normals
-				//std::pair<int, int> point;
-
-				////store points for undo/redo command
-				//point.first = i;
-				//point.second = j;
-				//m_points.push_back(point);
+				}
+				else {
+					// smooth falloff
+					float t = (distance - innerRadius) / (outerRadius - innerRadius);
+					t = t * t * (3.0 - 2.0 * t);
+					t = 1.0f - t;
+					m_displayChunk.m_terrainGeometry[i][j].position.y += 0.25f * editDirection * t;
+				}
 			}
 		}
 	}
